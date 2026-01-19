@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperData OS | Omni-Nexus v13.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #050505; --surface: #0f0f12; --accent: #ffffff; --zinc-800: #18181b; }
+        body { background: var(--bg); color: #f4f4f5; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* 60FPS SECTION TRANSITIONS */
+        .stage { position: relative; width: 100%; overflow: hidden; }
+        .view { 
+            display: none; opacity: 0; transform: translate3d(20px, 0, 0); 
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); will-change: transform, opacity;
+        }
+        .view.active { display: block; opacity: 1; transform: translate3d(0, 0, 0); }
+
+        /* UI ELEMENTS */
+        .glass { background: rgba(15, 15, 18, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .field { background: #18181b; border: 1px solid #27272a; border-radius: 12px; color: white; transition: all 0.2s ease; }
+        .field:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 15px rgba(255,255,255,0.05); }
+
+        /* MASCOT ANIMATION */
+        .mascot-float { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
+        .eye-blink { animation: blink 4s infinite; transform-origin: center; }
+        @keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+        .pulse-accent { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <nav class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-white/5">
+        <div class="flex flex-col">
+            <span class="mono text-[10px] font-bold tracking-[0.3em] flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-white rounded-full pulse-accent"></span> HYPERDATA NEXUS v13
+            </span>
+            <span id="navAtleta" class="text-[9px] uppercase text-zinc-500 font-bold mt-1 tracking-widest">Sincronizando...</span>
+        </div>
+        <div class="flex gap-5 text-[10px] font-extrabold uppercase tracking-widest">
+            <button onclick="nav('dash')" id="n-dash" class="text-white border-b border-white pb-1">Log</button>
+            <button onclick="nav('builder')" id="n-builder" class="text-zinc-500">Programación</button>
+            <button onclick="nav('profile')" id="n-profile" class="text-zinc-500">Biometría</button>
+            <button onclick="nav('sys')" id="n-sys" class="text-zinc-500">Data</button>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto p-4 md:p-8 space-y-6 stage">
+
+        <div id="v-dash" class="view active space-y-6">
+            <div class="glass p-6 rounded-[2.5rem] flex items-center gap-6">
+                <div id="mascotContainer" class="w-20 h-20 mascot-float flex-shrink-0">
+                    <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+                        <rect x="15" y="40" width="20" height="28" rx="4" fill="#27272a"/>
+                        <rect x="65" y="40" width="20" height="28" rx="4" fill="#27272a"/>
+                        <rect x="30" y="49" width="40" height="10" fill="#3f3f46"/>
+                        <circle cx="43" cy="52" r="2.5" fill="white" class="eye-blink"/>
+                        <circle cx="57" cy="52" r="2.5" fill="white" class="eye-blink"/>
+                        <path id="mascotMouth" d="M 45 60 Q 50 62 55 60" stroke="white" stroke-width="1.2" fill="none"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <div class="flex justify-between items-start">
+                        <span class="mono text-[8px] uppercase text-zinc-500 font-bold">Bio-Neural Mentor</span>
+                        <div id="restClock" class="mono text-[9px] bg-zinc-900 px-2 py-0.5 rounded border border-white/5">REST: 00:00</div>
+                    </div>
+                    <p id="nanoSpeech" class="text-xs text-zinc-300 leading-relaxed italic mt-1">"Esperando identificación de perfil para iniciar protocolo."</p>
+                </div>
+            </div>
+
+            <div class="glass p-8 rounded-[2.5rem] space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[9px] uppercase font-bold text-zinc-600 ml-2">Vector / Patrón</label>
+                        <select id="fCat" onchange="updateEx()" class="w-full field p-4 text-xs font-bold uppercase tracking-widest appearance-none">
+                            <option value="DB_UP">Tren Sup (Mancuernas)</option>
+                            <option value="DB_LOW">Tren Inf (Mancuernas)</option>
+                            <option value="COMPOUND">Básicos / Competición</option>
+                            <option value="CUSTOM">-- Manual --</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] uppercase font-bold text-zinc-600 ml-2">Ejercicio</label>
+                        <select id="fEx" onchange="checkCustom()" class="w-full field p-4 text-xs font-bold uppercase appearance-none"></select>
+                        <input type="text" id="fExCust" placeholder="Nombre..." class="hidden w-full field p-4 text-xs mt-2">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <input type="number" id="fW" placeholder="Peso (kg)" class="field p-5 text-center font-bold text-lg">
+                    <input type="number" id="fR" placeholder="Reps" class="field p-5 text-center font-bold text-lg">
+                    <input type="number" id="fRIR" placeholder="RIR" class="field p-5 text-center font-bold text-lg">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[9px] uppercase font-bold text-zinc-600 ml-2">Análisis Fenomenológico (Sensaciones/Molestias)</label>
+                    <textarea id="fObs" rows="2" placeholder="Describe sensaciones técnicas, fatiga o molestias percibidas..." class="w-full field p-4 text-xs italic"></textarea>
+                </div>
+
+                <button onclick="logSeries()" class="w-full py-5 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition active:scale-95 shadow-xl shadow-white/5">
+                    Registrar Métrica Efectiva
+                </button>
+            </div>
+
+            <div id="logStack" class="space-y-3"></div>
+        </div>
+
+        <div id="v-builder" class="view space-y-6">
+            <div class="glass p-8 rounded-[2.5rem] space-y-6">
+                <h3 class="mono text-xs uppercase font-bold text-zinc-500 tracking-widest">Constructor de Bloques</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="newRout" placeholder="Nombre (ej: Tirón A)" class="flex-1 field p-4 text-xs">
+                    <button onclick="addRout()" class="px-6 bg-zinc-800 rounded-xl font-bold">+</button>
+                </div>
+                <div id="routStack" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div id="v-profile" class="view space-y-6">
+            <div class="glass p-10 rounded-[2.5rem] space-y-8">
+                <div class="border-b border-white/5 pb-4">
+                    <h2 class="text-2xl font-black tracking-tighter italic">PERFIL BIOMÉTRICO</h2>
+                    <p class="text-[10px] text-zinc-500 uppercase tracking-widest">Identificación y variables antropométricas</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-zinc-600 uppercase ml-2 tracking-widest">Nombre del Atleta</label>
+                        <input type="text" id="pName" onchange="syncP()" class="w-full field p-5 text-sm font-bold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-zinc-600 uppercase ml-2 tracking-widest">Edad Cronológica</label>
+                        <input type="number" id="pAge" onchange="syncP()" class="w-full field p-5 text-sm font-bold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-zinc-600 uppercase ml-2 tracking-widest">Masa Corporal (kg)</label>
+                        <input type="number" id="pWeight" onchange="syncP()" class="w-full field p-5 text-sm font-bold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-zinc-600 uppercase ml-2 tracking-widest">Estatura Total (cm)</label>
+                        <input type="number" id="pHeight" onchange="syncP()" class="w-full field p-5 text-sm font-bold">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="v-sys" class="view space-y-6">
+            <div class="glass p-12 rounded-[3rem] text-center space-y-8">
+                <h3 class="mono text-xs font-bold uppercase tracking-[0.4em]">Sincronización Cloud-Manual</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="exportJSON()" class="p-6 glass rounded-2xl font-bold uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition">Exportar Perfil .JSON</button>
+                    <label class="p-6 glass rounded-2xl font-bold uppercase text-[10px] tracking-widest cursor-pointer hover:bg-zinc-800 transition">
+                        Importar Datos Atleta <input type="file" onchange="importJSON(event)" class="hidden">
+                    </label>
+                </div>
+                <button onclick="localStorage.clear(); location.reload();" class="text-red-900 text-[9px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition">Formatear Base de Datos</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- DATA SCIENTIFIC & CORE ---
+        const LIB = {
+            "DB_UP": ["Press Plano Manc.", "Press Inclinado 30º", "Remo Seal Manc.", "Elevación Lateral Escapular", "Curl Bayesian", "Extensión Tríceps Cabeza Larga"],
+            "DB_LOW": ["Bulgarian Split Squat", "RDL Mancuernas", "Step Up Controlado", "Goblet Squat Profundo"],
+            "COMPOUND": ["Sentadilla High Bar", "Peso Muerto Convencional", "Press de Banca Barra", "Dominadas Lastradas"],
+            "CUSTOM": ["-- DEFINIR MANUAL --"]
+        };
+
+        const TIPS = [
+            "La vía mTOR requiere aminoácidos esenciales post-esfuerzo.",
+            "La tensión mecánica es el vector principal de mecanotransducción.",
+            "RIR bajo detectado: Optimiza la síntesis proteica miofibrilar.",
+            "Glucógeno crítico: Los carbohidratos son tu combustible anaeróbico.",
+            "Pausa de 2-3 min entre series maximiza la recuperación de ATP-PC."
+        ];
+
+        let st = { p: { name: "", age: "", w: "", h: "" }, logs: [], routs: [], pb: {} };
+        let timer;
+
+        // --- NAVIGATION 60FPS ---
+        function nav(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => {
+                b.classList.remove('text-white', 'border-b', 'border-white');
+                b.classList.add('text-zinc-500');
+            });
+            document.getElementById('v-' + id).classList.add('active');
+            document.getElementById('n-' + id).classList.add('text-white', 'border-b', 'border-white');
+            document.getElementById('n-' + id).classList.remove('text-zinc-500');
+        }
+
+        // --- MASCOT ENGINE ---
+        function talk(mood) {
+            const m = document.getElementById('mascotMouth');
+            const s = document.getElementById('nanoSpeech');
+            const name = st.p.name || "Atleta";
+            
+            const config = {
+                PR: [`"¡IMPRESIONANTE ${name.toUpperCase()}! Nuevo pico de fuerza. Mechanotransducción exitosa."`, "M 40 55 Q 50 45 60 55"],
+                TIRED: [`"RIR bajo, ${name}. Mantén la homeostasis y controla la fase excéntrica."`, "M 45 60 Q 50 62 55 60"],
+                NORMAL: [`"Serie procesada, ${name}. La sobrecarga progresiva es el único camino científico."`, "M 45 60 Q 50 60 55 60"],
+                START: [`"Bienvenido, ${name}. Sistemas listos para el estímulo hipertrófico."`, "M 45 60 Q 50 60 55 60"]
+            };
+
+            const c = config[mood] || config.NORMAL;
+            s.innerText = c[0];
+            m.setAttribute('d', c[1]);
+            if(Math.random() > 0.7) setTimeout(() => s.innerText = TIPS[Math.floor(Math.random()*TIPS.length)], 4000);
+        }
+
+        // --- LOGIC ENGINE ---
+        function updateEx() {
+            const c = document.getElementById('fCat').value;
+            const s = document.getElementById('fEx');
+            const cust = document.getElementById('fExCust');
+            if(c === "CUSTOM") { s.classList.add('hidden'); cust.classList.remove('hidden'); }
+            else { 
+                s.classList.remove('hidden'); cust.classList.add('hidden');
+                s.innerHTML = LIB[c].map(e => `<option value="${e}">${e}</option>`).join('');
+            }
+        }
+
+        function logSeries() {
+            const cat = document.getElementById('fCat').value;
+            const ex = (cat === "CUSTOM") ? document.getElementById('fExCust').value : document.getElementById('fEx').value;
+            const w = parseFloat(document.getElementById('fW').value);
+            const r = parseInt(document.getElementById('fR').value);
+            const rir = document.getElementById('fRIR').value;
+            const obs = document.getElementById('fObs').value;
+
+            if(!w || !r || !ex) return alert("Faltan datos cinemáticos.");
+
+            const e1RM = w * (1 + (r / 30));
+            const log = { id: Date.now(), ex, w, r, rir, obs, e1RM, ts: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) };
+            
+            st.logs.unshift(log);
+            
+            if(!st.pb[ex] || e1RM > st.pb[ex]) { st.pb[ex] = e1RM; talk('PR'); }
+            else if(rir <= 1) talk('TIRED');
+            else talk('NORMAL');
+
+            document.getElementById('fObs').value = "";
+            save(); renderLogs(); startRest();
+        }
+
+        function renderLogs() {
+            document.getElementById('logStack').innerHTML = st.logs.map(l => `
+                <div class="glass p-5 rounded-2xl space-y-3 animate-60 border-l-4 border-zinc-700">
+                    <div class="flex justify-between items-center text-[9px] mono text-zinc-500 font-bold uppercase">
+                        <span>${l.ts}</span>
+                        <button onclick="delLog(${l.id})" class="text-red-900">Eliminar</button>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <h4 class="font-black text-sm uppercase tracking-tight">${l.ex}</h4>
+                        <div class="text-right">
+                            <p class="mono text-lg font-bold">${l.w}kg x ${l.r}</p>
+                            <p class="text-[9px] uppercase font-bold text-zinc-500">e1RM: ${l.e1RM.toFixed(1)}kg | RIR ${l.rir}</p>
+                        </div>
+                    </div>
+                    ${l.obs ? `<div class="p-3 bg-black/40 rounded-xl text-[10px] text-zinc-400 italic">"${l.obs}"</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function startRest() {
+            let s = 0; clearInterval(timer);
+            timer = setInterval(() => {
+                s++;
+                const m = Math.floor(s/60).toString().padStart(2,'0');
+                const sec = (s%60).toString().padStart(2,'0');
+                document.getElementById('restClock').innerText = `REST: ${m}:${sec}`;
+            }, 1000);
+        }
+
+        // --- PROGRAMMING ---
+        function addRout() {
+            const n = document.getElementById('newRout').value;
+            if(!n) return;
+            st.routs.push({ n, items: [] });
+            document.getElementById('newRout').value = "";
+            save(); renderRouts();
+        }
+
+        function renderRouts() {
+            document.getElementById('routStack').innerHTML = st.routs.map((r, i) => `
+                <div class="glass p-5 rounded-3xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="mono text-[10px] font-bold uppercase text-zinc-400">${r.n}</span>
+                        <button onclick="st.routs.splice(${i},1);save();renderRouts();" class="text-red-900 text-[10px]">×</button>
+                    </div>
+                    <div class="space-y-1">
+                        ${r.items.map(it => `<div class="p-3 bg-zinc-900 rounded-xl text-[10px] font-medium border border-white/5">${it}</div>`).join('')}
+                    </div>
+                    <button onclick="addItem(${i})" class="w-full py-2 border border-zinc-800 rounded-xl text-[8px] font-bold text-zinc-600 uppercase">+ Vincular Ejercicio</button>
+                </div>
+            `).join('');
+        }
+
+        function addItem(i) {
+            const it = prompt("Ejercicio:");
+            if(it) { st.routs[i].items.push(it); save(); renderRouts(); }
+        }
+
+        // --- PERSISTENCE ---
+        function syncP() {
+            st.p = { 
+                name: document.getElementById('pName').value, 
+                age: document.getElementById('pAge').value, 
+                w: document.getElementById('pWeight').value, 
+                h: document.getElementById('pHeight').value 
+            };
+            document.getElementById('navAtleta').innerText = `Perfil: ${st.p.name || '---'}`;
+            save();
+        }
+
+        function save() { localStorage.setItem('hyper_nexus_v13', JSON.stringify(st)); }
+
+        function exportJSON() {
+            const b = new Blob([JSON.stringify(st)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = `HYPERDATA_${st.p.name || 'ATHLETE'}.json`;
+            a.click();
+        }
+
+        function importJSON(e) {
+            const r = new FileReader();
+            r.onload = (ev) => {
+                st = JSON.parse(ev.target.result);
+                document.getElementById('pName').value = st.p.name;
+                document.getElementById('pAge').value = st.p.age;
+                document.getElementById('pWeight').value = st.p.w;
+                document.getElementById('pHeight').value = st.p.h;
+                document.getElementById('navAtleta').innerText = `Perfil: ${st.p.name}`;
+                renderLogs(); renderRouts(); talk('START');
+            };
+            r.readAsText(e.target.files[0]);
+        }
+
+        window.onload = () => {
+            const s = localStorage.getItem('hyper_nexus_v13');
+            if(s) {
+                st = JSON.parse(s);
+                document.getElementById('pName').value = st.p.name || "";
+                document.getElementById('pAge').value = st.p.age || "";
+                document.getElementById('pWeight').value = st.p.w || "";
+                document.getElementById('pHeight').value = st.p.h || "";
+                document.getElementById('navAtleta').innerText = `Perfil: ${st.p.name || '---'}`;
+            }
+            updateEx(); renderLogs(); renderRouts(); talk('START');
+        };
+    </script>
+</body>
+</html>
